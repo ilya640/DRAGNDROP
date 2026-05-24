@@ -14,116 +14,62 @@
 
     <script>
         (function() {
-            let draggingImg = null;
-            let dragStartLeft = 0,
-                dragStartTop = 0;
-            let dragStartPageX = 0,
-                dragStartPageY = 0;
-            let dragOffsetX = 0,
-                dragOffsetY = 0;
-            let onMouseMove = null;
-            let onMouseUp = null;
+            let dragImg = null,
+                offsetX, offsetY;
 
-            function createPlaceholder(img, rect, computedStyle) {
-                const placeholder = document.createElement('div');
-                placeholder.style.width = rect.width + 'px';
-                placeholder.style.height = rect.height + 'px';
-                placeholder.style.display = 'inline-block';
-                placeholder.style.margin = computedStyle.margin;
-                placeholder.style.padding = computedStyle.padding;
-                placeholder.style.border = computedStyle.border;
-                placeholder.style.verticalAlign = computedStyle.verticalAlign;
-                placeholder.style.background = 'transparent';
-                placeholder.style.pointerEvents = 'none';
-                placeholder.classList.add('drag-placeholder');
-                return placeholder;
-            }
-
-            function makeDraggable(img) {
-                img.addEventListener('mousedown', onMouseDown);
-            }
-
-            function onMouseDown(e) {
-                if (e.button !== 0) return;
-                if (draggingImg) return;
-
-                e.preventDefault();
-                const img = e.currentTarget;
-                const rect = img.getBoundingClientRect();
-                const computedStyle = window.getComputedStyle(img);
-
-                const isAlreadyAbsolute = window.getComputedStyle(img).position === 'absolute';
-
-                if (!isAlreadyAbsolute && !img._placeholder) {
-                    const placeholder = createPlaceholder(img, rect, computedStyle);
-                    const parent = img.parentNode;
-                    if (parent) {
-                        parent.insertBefore(placeholder, img);
-                        img._placeholder = placeholder;
-                    }
-                    img.style.position = 'absolute';
-                    img.style.left = (rect.left + window.scrollX) + 'px';
-                    img.style.top = (rect.top + window.scrollY) + 'px';
-                    img.style.width = rect.width + 'px';
-                    img.style.height = rect.height + 'px';
-                    img.style.margin = '0';
-                    img.style.padding = '0';
-                    img.style.border = computedStyle.border;
-                    document.body.appendChild(img);
-                } else if (isAlreadyAbsolute) {
-                    if (!img._placeholder) {
-                        console.warn('placeholder missing for absolute image');
-                    }
-                }
-
-                const finalRect = img.getBoundingClientRect();
-                dragOffsetX = e.clientX - finalRect.left;
-                dragOffsetY = e.clientY - finalRect.top;
-
-                dragStartLeft = parseFloat(img.style.left);
-                dragStartTop = parseFloat(img.style.top);
-                if (isNaN(dragStartLeft)) dragStartLeft = finalRect.left + window.scrollX;
-                if (isNaN(dragStartTop)) dragStartTop = finalRect.top + window.scrollY;
-
-                dragStartPageX = e.pageX;
-                dragStartPageY = e.pageY;
-
-                draggingImg = img;
-                img.style.zIndex = '10000';
-                document.body.style.cursor = 'grabbing';
-
-                onMouseMove = function(e) {
-                    if (!draggingImg) return;
+            for (let img of document.querySelectorAll('img')) {
+                img.onmousedown = (e) => {
+                    if (e.button !== 0 || dragImg) return;
                     e.preventDefault();
-                    const dx = e.pageX - dragStartPageX;
-                    const dy = e.pageY - dragStartPageY;
-                    let newLeft = dragStartLeft + dx;
-                    let newTop = dragStartTop + dy;
-                    draggingImg.style.left = newLeft + 'px';
-                    draggingImg.style.top = newTop + 'px';
-                };
+                    const rect = img.getBoundingClientRect();
+                    const cs = getComputedStyle(img);
 
-                onMouseUp = function(e) {
-                    if (!draggingImg) return;
-                    e.preventDefault();
-                    document.removeEventListener('mousemove', onMouseMove);
-                    document.removeEventListener('mouseup', onMouseUp);
-                    draggingImg.style.zIndex = '';
-                    document.body.style.cursor = '';
-                    draggingImg = null;
-                    onMouseMove = null;
-                    onMouseUp = null;
-                };
+                    if (!img.placeholder) {
+                        let ph = document.createElement('div');
+                        ph.style.cssText = `width:${rect.width}px; height:${rect.height}px; display:inline-block; margin:${cs.margin}; padding:${cs.padding}; border:${cs.border}; vertical-align:${cs.verticalAlign}; background:transparent; pointer-events:none`;
+                        img.parentNode.insertBefore(ph, img);
+                        img.placeholder = ph;
 
-                document.addEventListener('mousemove', onMouseMove);
-                document.addEventListener('mouseup', onMouseUp);
+                        img.style.position = 'absolute';
+                        img.style.left = (rect.left + window.scrollX) + 'px';
+                        img.style.top = (rect.top + window.scrollY) + 'px';
+                        img.style.width = rect.width + 'px';
+                        img.style.height = rect.height + 'px';
+                        img.style.margin = '0';
+                        img.style.padding = '0';
+                        img.style.border = cs.border;
+                        document.body.appendChild(img);
+                    }
+
+                    const curRect = img.getBoundingClientRect();
+                    offsetX = e.clientX - curRect.left;
+                    offsetY = e.clientY - curRect.top;
+
+                    dragImg = img;
+                    img.style.zIndex = '9999';
+                    document.body.style.cursor = 'grabbing';
+
+                    const move = (e) => {
+                        if (!dragImg) return;
+                        e.preventDefault();
+                        dragImg.style.left = (e.pageX - offsetX) + 'px';
+                        dragImg.style.top = (e.pageY - offsetY) + 'px';
+                    };
+                    const up = (e) => {
+                        if (!dragImg) return;
+                        e.preventDefault();
+                        dragImg.style.zIndex = '';
+                        document.body.style.cursor = '';
+                        window.removeEventListener('mousemove', move);
+                        window.removeEventListener('mouseup', up);
+                        dragImg = null;
+                    };
+                    window.addEventListener('mousemove', move);
+                    window.addEventListener('mouseup', up);
+                };
             }
-
-            const images = document.querySelectorAll('img');
-            images.forEach(img => makeDraggable(img));
         })();
     </script>
-
 </body>
 
 </html>
