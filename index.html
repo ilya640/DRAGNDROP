@@ -21,8 +21,23 @@
                 img.onmousedown = (e) => {
                     if (e.button !== 0 || dragImg) return;
                     e.preventDefault();
+
                     const rect = img.getBoundingClientRect();
                     const cs = getComputedStyle(img);
+
+                    const paddingLeft = parseFloat(cs.paddingLeft) || 0;
+                    const paddingRight = parseFloat(cs.paddingRight) || 0;
+                    const paddingTop = parseFloat(cs.paddingTop) || 0;
+                    const paddingBottom = parseFloat(cs.paddingBottom) || 0;
+                    const borderLeft = parseFloat(cs.borderLeftWidth) || 0;
+                    const borderRight = parseFloat(cs.borderRightWidth) || 0;
+                    const borderTop = parseFloat(cs.borderTopWidth) || 0;
+                    const borderBottom = parseFloat(cs.borderBottomWidth) || 0;
+
+                    const contentWidth = rect.width - paddingLeft - paddingRight - borderLeft - borderRight;
+                    const contentHeight = rect.height - paddingTop - paddingBottom - borderTop - borderBottom;
+                    const contentLeft = rect.left + paddingLeft + borderLeft;
+                    const contentTop = rect.top + paddingTop + borderTop;
 
                     if (!img.placeholder) {
                         let ph = document.createElement('div');
@@ -31,19 +46,24 @@
                         img.placeholder = ph;
 
                         img.style.position = 'absolute';
-                        img.style.left = (rect.left + window.scrollX) + 'px';
-                        img.style.top = (rect.top + window.scrollY) + 'px';
-                        img.style.width = rect.width + 'px';
-                        img.style.height = rect.height + 'px';
+                        img.style.left = (contentLeft + window.scrollX) + 'px';
+                        img.style.top = (contentTop + window.scrollY) + 'px';
+                        img.style.width = contentWidth + 'px';
+                        img.style.height = contentHeight + 'px';
                         img.style.margin = '0';
                         img.style.padding = '0';
-                        img.style.border = cs.border;
+                        img.style.border = 'none';
+                        document.body.appendChild(img);
+                    } else {
+                        img.style.left = (contentLeft + window.scrollX) + 'px';
+                        img.style.top = (contentTop + window.scrollY) + 'px';
+                        img.style.width = contentWidth + 'px';
+                        img.style.height = contentHeight + 'px';
                         document.body.appendChild(img);
                     }
 
-                    const curRect = img.getBoundingClientRect();
-                    offsetX = e.clientX - curRect.left;
-                    offsetY = e.clientY - curRect.top;
+                    offsetX = e.clientX - (contentLeft + window.scrollX);
+                    offsetY = e.clientY - (contentTop + window.scrollY);
 
                     dragImg = img;
                     img.style.zIndex = '9999';
@@ -55,6 +75,7 @@
                         dragImg.style.left = (e.pageX - offsetX) + 'px';
                         dragImg.style.top = (e.pageY - offsetY) + 'px';
                     };
+
                     const up = (e) => {
                         if (!dragImg) return;
                         e.preventDefault();
@@ -64,6 +85,7 @@
                         window.removeEventListener('mouseup', up);
                         dragImg = null;
                     };
+
                     window.addEventListener('mousemove', move);
                     window.addEventListener('mouseup', up);
                 };
